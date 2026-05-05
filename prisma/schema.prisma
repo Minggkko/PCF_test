@@ -1,0 +1,48 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Activity {
+  id           Int      @id @default(autoincrement())
+  date         DateTime @db.Date
+  activityType String   @map("activity_type")
+  description  String
+  amount       Float
+  unit         String
+  importLogId  Int?     @map("import_log_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  importLog    ImportLog? @relation(fields: [importLogId], references: [id])
+
+  @@map("activities")
+}
+
+model EmissionFactor {
+  id           Int      @id @default(autoincrement())
+  activityType String   @map("activity_type")
+  description  String
+  factor       Float
+  unit         String
+  version      Int      @default(1)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("emission_factors")
+}
+
+model ImportLog {
+  id          Int        @id @default(autoincrement())
+  filename    String
+  totalRows   Int        @map("total_rows")
+  successRows Int        @map("success_rows")
+  errorRows   Int        @map("error_rows")
+  status      String
+  importedAt  DateTime   @default(now()) @map("imported_at")
+
+  activities  Activity[]
+
+  @@map("import_logs")
+}
