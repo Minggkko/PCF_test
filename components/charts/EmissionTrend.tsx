@@ -35,14 +35,12 @@ export default function EmissionTrend({ data }: Props) {
           <YAxis tick={{ fontSize:10 }} />
           <Tooltip />
           <Legend wrapperStyle={{ fontSize:'11px' }} />
-          <Bar dataKey="원소재" stackId="a" fill="#89986D" name="원소재 (Scope 3)" cursor="pointer" />
-          <Bar dataKey="운송"   stackId="a" fill="#C5D89D" name="운송 (Scope 3)"   cursor="pointer" />
-          <Bar dataKey="전기"   stackId="a" fill="#9CAB84" name="전기 (Scope 2)"   cursor="pointer" />
+          <Bar dataKey="원소재" stackId="a" fill="#3B4953" name="원소재 (Scope 3)" cursor="pointer" />
+          <Bar dataKey="운송"   stackId="a" fill="#EBF4DD" name="운송 (Scope 3)"   cursor="pointer" />
+          <Bar dataKey="전기"   stackId="a" fill="#90AB8B" name="전기 (Scope 2)"   cursor="pointer" />
         </BarChart>
       </ResponsiveContainer>
-      <div style={{ marginTop:'10px', textAlign:'center', fontSize:'11px', color:'#ccc' }}>
-        막대 클릭 → 월별 원본 데이터 + 계산식
-      </div>
+      
     </div>
   )
 }
