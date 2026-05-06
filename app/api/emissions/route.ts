@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { calculateCO2e, resolveScope, getScopeLabel } from '@/lib/carbon/calculator'
 import type { ActivityType, MonthlyEmission, ScopeSummary } from '@/lib/carbon/types'
 
+export const dynamic = 'force-dynamic'
 export async function GET() {
   const activities = await prisma.activity.findMany({ orderBy: { date: 'asc' } })
   const factors = await prisma.emissionFactor.findMany()

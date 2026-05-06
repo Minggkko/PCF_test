@@ -7,7 +7,7 @@ import EmissionTrend from '@/components/charts/EmissionTrend'
 import LCAFlow from '@/components/charts/LCAFlow'
 import TopSources from '@/components/charts/TopSources'
 import InsightCard from '@/components/InsightCard'
-
+export const dynamic = 'force-dynamic'
 interface MonthlyEmission {
   month: string
   전기: number
@@ -25,6 +25,8 @@ interface ScopeSummary {
 }
 
 interface ActivityResult {
+  id: number
+  date: string
   activityType: string
   description: string
   co2e: number
