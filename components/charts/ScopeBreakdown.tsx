@@ -25,7 +25,7 @@ export default function ScopeBreakdown({ data }: Props) {
           </div>
           <div style={{ background:'#f0f0f0', borderRadius:'4px', height:'8px', overflow:'hidden' }}>
             <div style={{
-              background: s.scope === 'scope2' ? '#7F77DD' : '#D85A30',
+              background: s.scope === 'scope2' ? '#B5E18B' : '#B5E18B',
               width:`${s.percentage}%`,
               height:'100%',
               borderRadius:'4px',
@@ -35,6 +35,14 @@ export default function ScopeBreakdown({ data }: Props) {
           <div style={{ fontSize:'11px', color:'#bbb', marginTop:'4px' }}>{s.description}</div>
         </div>
       ))}
+
+      <div style={{ marginTop:'16px', padding:'10px 14px', background:'#EEFABD', borderRadius:'8px' }}>
+        <div style={{ fontSize:'11px', color:'#263B6A', lineHeight:'1.8' }}>
+          <strong>계산 기준</strong><br/>
+          활동량 × 배출계수 = kgCO₂e · GHG Protocol Product Standard<br/>
+          배출계수는 emission_factors 테이블에서 동적 조회
+        </div>
+      </div>
     </div>
   )
 }
