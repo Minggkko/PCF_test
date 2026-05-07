@@ -9,7 +9,7 @@ export default function Navigation() {
   const tabs = [
     { href: '/', label: '개요' },
     { href: '/data', label: '데이터 입력' },
-    { href: '/import', label: 'Excel 임포트' },
+    { href: '/import', label: '데이터 업로드' },
   ]
 
   return (

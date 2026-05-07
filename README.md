@@ -1,36 +1,179 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PCF 대시보드 — HanaLoop 채용 과제
 
-## Getting Started
+제품 탄소 발자국(PCF) 전과정 데이터를 시각화하는 인터랙티브 대시보드입니다.
 
-First, run the development server:
+---
+
+## 로컬 실행 방법
 
 ```bash
-npm run dev
-# or
+# 1. 의존성 설치
+npm install
+
+# 2. 환경변수 설정 (.env 파일)
+DATABASE_URL="postgresql://postgres:비밀번호@localhost:5432/pcf_db"
+
+# 3. DB 마이그레이션
+npx prisma migrate dev
+
+# 4. 배출계수 초기 데이터 입력
+npm run seed
+
+# 5. 실행
 yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+브라우저에서 `http://localhost:3000` 접속
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 기술 스택
 
-## Learn More
+- **Framework**: Next.js 16 (App Router) + TypeScript
+- **DB**: PostgreSQL + Prisma ORM
+- **차트**: Recharts
+- **Excel 파싱**: SheetJS (xlsx)
+- **검증**: Zod
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 페이지 구성
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| 페이지 | 경로 | 설명 |
+|--------|------|------|
+| Overview | `/` | PCF 전과정 시각화, KPI, 인사이트 |
+| 데이터 입력 | `/data` | 활동 데이터 수동 입력 |
+| Excel 임포트 | `/import` | Excel → PostgreSQL 직접 임포트 |
+| 월별 상세 | `/month/[month]` | 월별 원본 데이터 + 계산식 |
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## DB 스키마 (ERD)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+┌─────────────────────────┐     ┌──────────────────────────┐
+│        activities       │     │      emission_factors    │
+├─────────────────────────┤     ├──────────────────────────┤
+│ id          INT (PK)    │     │ id          INT (PK)     │
+│ date        DATE        │     │ activity_type VARCHAR    │
+│ activity_type VARCHAR   │─ ─ ▶│ description  VARCHAR     │
+│ description VARCHAR     │     │ factor       FLOAT       │
+│ amount      FLOAT       │     │ unit         VARCHAR     │
+│ unit        VARCHAR     │     │ version      INT         │
+│ import_log_id INT (FK)  │     │ created_at   TIMESTAMP   │
+│ created_at  TIMESTAMP   │     └──────────────────────────┘
+└────────────┬────────────┘
+             │ N
+             │ 1
+┌────────────▼────────────┐
+│        import_logs      │
+├─────────────────────────┤
+│ id          INT (PK)    │
+│ filename    VARCHAR     │
+│ total_rows  INT         │
+│ success_rows INT        │
+│ error_rows  INT         │
+│ status      VARCHAR     │
+│ imported_at TIMESTAMP   │
+└─────────────────────────┘
+```
+
+---
+
+## 시스템 설계
+
+### 탄소 회계 개념 반영 (GHG Protocol)
+
+```typescript
+// GHG Protocol 기준 Scope 분류
+type GHGScope = 'scope1' | 'scope2' | 'scope3_upstream'
+
+const SCOPE_MAP: Record<ActivityType, GHGScope> = {
+  전기: 'scope2',           // 외부 구매 전력
+  원소재: 'scope3_upstream', // 공급망 원자재 조달
+  운송: 'scope3_upstream',   // 업스트림 운송
+}
+
+// 핵심 계산식: 활동량 × 배출계수 = kgCO₂e
+function calculateCO2e(amount: number, factor: number): number {
+  return Math.round(amount * factor * 1000) / 1000
+}
+```
+
+### 모듈형 컴포넌트 구조
+
+```
+app/                     ← 페이지 + API Route Handler
+components/
+├── charts/
+│   ├── EmissionTrend    ← 월별 바차트
+│   ├── ScopeDonut       ← Scope 도넛 차트
+│   ├── LCAFlow          ← 전과정 흐름
+│   └── TopSources       ← 배출원 Top5
+├── ui/
+│   └── KPICard          ← 재사용 KPI 카드
+└── InsightCard          ← AI 인사이트
+lib/
+├── carbon/
+│   ├── types.ts         ← 도메인 타입
+│   └── calculator.ts    ← CO₂e 계산 함수
+└── prisma.ts            ← DB 클라이언트 싱글턴
+```
+
+---
+
+## 설계 결정 & Trade-off
+
+### 1. 배출계수를 DB 테이블로 관리
+
+**선택**: `emission_factors` 테이블 + `version` 컬럼
+
+**이유**: 배출계수는 정책·연도마다 변경됨. 코드 상수로 관리하면 배포 없이 수정 불가능하고 변경 이력 추적 불가.
+
+**trade-off**: 쿼리 복잡도 증가 vs 운영 유연성. 운영 유연성 선택.
+
+### 2. Excel 파싱을 클라이언트에서 처리
+
+**선택**: SheetJS를 브라우저에서 실행
+
+**이유**: 파일 선택 즉시 미리보기 표시 가능. 행별 오류를 저장 전에 사용자에게 보여줄 수 있음.
+
+**trade-off**: 클라이언트 보안 vs UX. 탄소 활동 데이터는 기밀성이 낮으므로 UX 우선.
+
+### 3. 배출량 계산을 API에서 실시간 처리
+
+**선택**: DB View 대신 API Route에서 계산
+
+**이유**: 배출계수 변경 시 즉시 반영. 계산 로직이 코드로 테스트 가능. 감사 추적 용이.
+
+**trade-off**: 응답 속도 vs 정확성. 데이터 규모가 크지 않아 실시간 계산 선택.
+
+---
+
+## AI 활용 내역
+
+| 작업 | 사용한 프롬프트 요약 | 직접 결정한 부분 |
+|------|---------------------|-----------------|
+| Prisma 스키마 | "PCF 데이터를 위한 activities, emission_factors 테이블 설계" | scope 컬럼 추가, version 전략 직접 설계 |
+| Excel 파싱 API | "SheetJS로 한글 헤더 Excel 파싱하는 Next.js route 작성" | 행별 Zod 검증, 중복 체크, 트랜잭션 래핑 직접 추가 |
+| Recharts 차트 | "Scope별 누적 바 차트 + 도넛 차트 컴포넌트 구조" | 데이터 fetch 분리, custom hook 리팩토링 직접 |
+| LCA 전과정 흐름 | "PCF LCA 단계별 카드 플로우 UI 컴포넌트" | 단계 구성, Scope 매핑 직접 설계 |
+
+**AI가 도운 것**: boilerplate 코드, 라이브러리 사용 패턴, 컴포넌트 구조 초안
+
+**직접 결정한 것**: GHGScope 타입 시스템, 배출계수 버전 관리 전략, 도메인 타입 설계, trade-off 판단
+
+---
+
+## 커밋 히스토리
+
+```
+feat: carbon domain types and prisma schema
+feat: emission calculation API with scope 1/2/3 mapping
+feat: excel import with preview, validation, duplicate check
+feat: overview dashboard with KPI, LCA flow, donut chart
+feat: month detail page with raw data and calculation
+feat: data input page with validation
+feat: AI insights based on historical data
+docs: README with ERD, trade-off, AI usage log
+```
