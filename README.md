@@ -20,7 +20,13 @@ npx prisma migrate dev
 npm run seed
 
 # 5. 실행
+
+## 개발 모드
 yarn dev
+
+## 프로덕션 모드
+yarn build
+yarn start
 ```
 
 브라우저에서 `http://localhost:3000` 접속
@@ -43,7 +49,7 @@ yarn dev
 |--------|------|------|
 | Overview | `/` | PCF 전과정 시각화, KPI, 인사이트 |
 | 데이터 입력 | `/data` | 활동 데이터 수동 입력 |
-| Excel 임포트 | `/import` | Excel → PostgreSQL 직접 임포트 |
+| 데이터 업로드 | `/import` | Excel → PostgreSQL 직접 임포트 |
 | 월별 상세 | `/month/[month]` | 월별 원본 데이터 + 계산식 |
 
 ---
@@ -152,28 +158,19 @@ lib/
 
 ## AI 활용 내역
 
-| 작업 | 사용한 프롬프트 요약 | 직접 결정한 부분 |
+| 작업 | 사용한 프롬프트 요약 | AI 결과에서 변경한 부분 |
 |------|---------------------|-----------------|
-| Prisma 스키마 | "PCF 데이터를 위한 activities, emission_factors 테이블 설계" | scope 컬럼 추가, version 전략 직접 설계 |
-| Excel 파싱 API | "SheetJS로 한글 헤더 Excel 파싱하는 Next.js route 작성" | 행별 Zod 검증, 중복 체크, 트랜잭션 래핑 직접 추가 |
-| Recharts 차트 | "Scope별 누적 바 차트 + 도넛 차트 컴포넌트 구조" | 데이터 fetch 분리, custom hook 리팩토링 직접 |
-| LCA 전과정 흐름 | "PCF LCA 단계별 카드 플로우 UI 컴포넌트" | 단계 구성, Scope 매핑 직접 설계 |
+| Prisma 스키마 | "PCF 데이터를 위한 activities, emission_factors 테이블 설계" | AI가 단일 테이블로 설계했으나 배출계수 버전 관리를 위해 별도 테이블로 분리. version 컬럼 추가 |
+| Excel 파싱 API | "SheetJS로 한글 헤더 Excel 파싱하는 Next.js route 작성" | AI가 서버 파싱으로 구현했으나 미리보기 UX를 위해 클라이언트 파싱으로 변경. 중복 체크 로직 추가 |
+| Recharts 차트 | "Scope별 누적 바 차트 + 도넛 차트 컴포넌트 구조" | AI가 fetch 로직을 컴포넌트 안에 포함했으나 재사용성을 위해 props로 분리 |
+| LCA 전과정 흐름 | "PCF LCA 단계별 카드 플로우 UI 컴포넌트" | AI가 하드코딩된 수치를 사용했으나 실제 DB 데이터 기반으로 동적 계산으로 변경 |
 
 **AI가 도운 것**: boilerplate 코드, 라이브러리 사용 패턴, 컴포넌트 구조 초안
 
-**직접 결정한 것**: GHGScope 타입 시스템, 배출계수 버전 관리 전략, 도메인 타입 설계, trade-off 판단
+**변경한 이유**: 탄소 회계 도메인 특성과 실무자·경영자 두 페르소나의 요구사항에 맞게 조정
 
 ---
+## 작업 소요 시간
 
-## 커밋 히스토리
-
-```
-feat: carbon domain types and prisma schema
-feat: emission calculation API with scope 1/2/3 mapping
-feat: excel import with preview, validation, duplicate check
-feat: overview dashboard with KPI, LCA flow, donut chart
-feat: month detail page with raw data and calculation
-feat: data input page with validation
-feat: AI insights based on historical data
-docs: README with ERD, trade-off, AI usage log
-```
+총 약 2일 (약18시간)
+가장 오래 걸린 작업: 탄소 도메인 학습 및 설계, 대시보드 구현
